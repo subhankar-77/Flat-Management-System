@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SocietyPay — Flat Management</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+/* ── Reset & Variables ───────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#252d3d;
+  --border:#2d3748;--border2:#3d4f6b;
+  --text:#e8edf5;--text2:#8fa3c0;--text3:#5a7399;
+  --accent:#4f8ef7;--accent2:#3671d4;--accent-bg:rgba(79,142,247,0.12);
+  --green:#22c55e;--green-bg:rgba(34,197,94,0.12);
+  --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.12);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.12);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.12);
+  --radius:10px;--radius2:14px;
+  font-family:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* ── CONFIG BANNER ───────────────────────────────────────────────────────── */
+#config-banner{background:var(--amber-bg);border-bottom:1px solid rgba(245,158,11,0.3);padding:10px 24px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--amber)}
+#config-banner input{background:var(--bg3);border:1px solid rgba(245,158,11,0.4);border-radius:6px;padding:5px 10px;color:var(--text);font-size:12px;width:260px;font-family:'DM Sans',sans-serif}
+#config-banner button{background:var(--amber);color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* ── Login Screen ────────────────────────────────────────────────────────── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
+.login-card{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:40px;width:100%;max-width:400px}
+.login-logo{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:32px}
+.login-logo-icon{width:44px;height:44px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.login-logo-text{font-size:22px;font-weight:700;letter-spacing:-0.5px}
+.login-sub{text-align:center;color:var(--text2);font-size:13px;margin-top:-20px;margin-bottom:28px}
+.login-error{background:var(--red-bg);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none}
+
+/* ── Topbar ──────────────────────────────────────────────────────────────── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;letter-spacing:-0.3px}
+.brand-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.admin-badge{background:var(--accent-bg);color:var(--accent);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(79,142,247,0.3);letter-spacing:0.5px}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#4f8ef7,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 56px)}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13.5px;color:var(--text2);transition:all 0.15s;border-left:2px solid transparent}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent);border-left-color:var(--accent)}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.nav-label{font-weight:500}
+.nav-section{font-size:10px;font-weight:600;color:var(--text3);padding:12px 20px 4px;letter-spacing:1px;text-transform:uppercase}
+.main{flex:1;overflow-y:auto;padding:28px 32px}
+.page{display:none}
+.page.active{display:block}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:20px 24px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:16px}
+
+/* ── Stats ───────────────────────────────────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:20px}
+.stat-label{font-size:12px;color:var(--text2);font-weight:500;margin-bottom:8px}
+.stat-value{font-size:26px;font-weight:600;letter-spacing:-0.5px}
+.stat-sub{font-size:12px;margin-top:4px}
+.stat-card.green{border-color:rgba(34,197,94,0.2);background:rgba(34,197,94,0.04)}
+.stat-card.blue{border-color:rgba(79,142,247,0.2);background:rgba(79,142,247,0.04)}
+.stat-card.amber{border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.04)}
+.stat-card.red{border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.04)}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius2);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;background:var(--bg2);font-size:13px}
+thead th{padding:11px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;background:var(--bg3);border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.12s;cursor:pointer}
+tbody tr:hover{background:var(--bg3)}
+tbody tr:last-child{border-bottom:none}
+td{padding:12px 16px;color:var(--text)}
+.cell-muted{color:var(--text2);font-size:12px}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.3px}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-blue{background:var(--accent-bg);color:var(--accent)}
+.badge-purple{background:var(--purple-bg);color:var(--purple)}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-outline:hover{background:var(--bg3);color:var(--text)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid transparent}
+.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#16a34a}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+
+/* ── Page header ─────────────────────────────────────────────────────────── */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-title{font-size:20px;font-weight:600;letter-spacing:-0.3px}
+.page-sub{font-size:13px;color:var(--text2);margin-top:2px}
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+.form-grid{display:grid;gap:16px}
+.form-grid-2{grid-template-columns:1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:6px}
+label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input::placeholder{color:var(--text3)}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:80px}
+
+/* ── Modals ──────────────────────────────────────────────────────────────── */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:28px;position:relative;animation:modalIn 0.2s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.modal-title{font-size:16px;font-weight:600}
+.modal-close{background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1;padding:0}
+.modal-close:hover{color:var(--text)}
+
+/* ── Flat grid ───────────────────────────────────────────────────────────── */
+.flat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.flat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;cursor:pointer;transition:all 0.15s}
+.flat-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.flat-card.paid{border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.04)}
+.flat-card.pending{border-color:rgba(245,158,11,0.25)}
+.flat-card.overdue{border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.04)}
+
+/* ── Notice ──────────────────────────────────────────────────────────────── */
+.notice-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.notice-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.notice-title-text{font-weight:600;font-size:14px}
+.notice-body{font-size:13px;color:var(--text2);line-height:1.6}
+.notice-meta{font-size:11px;color:var(--text3);margin-top:8px}
+
+/* ── History item ────────────────────────────────────────────────────────── */
+.history-item{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.history-item:last-child{border-bottom:none}
+.h-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+
+/* ── Progress ────────────────────────────────────────────────────────────── */
+.progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+.progress-fill.green{background:var(--green)}
+.progress-fill.amber{background:var(--amber)}
+.progress-fill.red{background:var(--red)}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px}
+.tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;animation:toastIn 0.3s ease;background:var(--bg3);border:1px solid var(--border2);color:var(--text)}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Loading spinner ─────────────────────────────────────────────────────── */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:250;display:flex;align-items:center;justify-content:center;display:none}
+.loading-overlay.show{display:flex}
+
+/* ── Chip ────────────────────────────────────────────────────────────────── */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty-state .empty-icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  CONFIG BANNER — edit API_BASE and RAZORPAY_KEY_ID here                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="config-banner">
+  ⚙️ Backend URL:
+  <input id="api-base-input" placeholder="http://localhost:8000" value="http://localhost:8000" />
+  &nbsp; Razorpay Key:
+  <input id="rzp-key-input" placeholder="rzp_test_XXXX" value="" />
+  <button onclick="saveConfig()">Save & Connect</button>
+  <span id="conn-status" style="margin-left:10px"></span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  LOGIN SCREEN                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🏢</div>
+      <div class="login-logo-text">SocietyPay</div>
+    </div>
+    <p class="login-sub">Sunrise Heights Society — Admin Portal</p>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Email</label>
+        <input id="login-email" type="email" placeholder="admin@sunriseheights.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <button class="btn btn-primary" id="login-btn" onclick="doLogin()" style="justify-content:center;padding:12px">
+        Sign In →
+      </button>
+    </div>
+    <p style="text-align:center;font-size:12px;color:var(--text3);margin-top:16px">
+      Credentials set in your <code style="color:var(--accent)">.env</code> file
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  MAIN APP (hidden until logged in)                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="app" style="display:none;flex-direction:column;flex:1">
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="brand-icon">🏢</div>
+    SocietyPay
+  </div>
+  <div class="topbar-right">
+    <span class="admin-badge">ADMIN</span>
+    <div class="avatar" id="avatar-initials" onclick="doLogout()" title="Click to logout">AD</div>
+  </div>
+</div>
+
+<div class="layout">
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></div>
+  <div class="nav-section">Management</div>
+  <div class="nav-item" data-page="flats"><span class="nav-icon">🏠</span><span class="nav-label">Flat Owners</span></div>
+  <div class="nav-item" data-page="maintenance"><span class="nav-icon">🔧</span><span class="nav-label">Maintenance</span></div>
+  <div class="nav-section">Finance</div>
+  <div class="nav-item" data-page="payments"><span class="nav-icon">💳</span><span class="nav-label">Collect Payment</span></div>
+  <div class="nav-item" data-page="history"><span class="nav-icon">📋</span><span class="nav-label">Payment History</span></div>
+  <div class="nav-section">Comms</div>
+  <div class="nav-item" data-page="notices"><span class="nav-icon">📢</span><span class="nav-label">Notices</span></div>
+</div>
+
+<!-- Main content -->
+<div class="main">
+
+<!-- ── DASHBOARD ──────────────────────────────────────────────────────── -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub" id="dash-subtitle">Loading...</div>
+    </div>
+    <button class="btn btn-primary" onclick="openPage('payments')">💳 Collect Payment</button>
+  </div>
+  <div class="stats-grid" id="dash-stats">
+    <div class="stat-card blue"><div class="stat-label">Total Flats</div><div class="stat-value" style="color:var(--accent)" id="ds-total">—</div></div>
+    <div class="stat-card green"><div class="stat-label">Paid This Month</div><div class="stat-value" style="color:var(--green)" id="ds-paid">—</div><div class="stat-sub" id="ds-paid-count" style="color:var(--green)"></div></div>
+    <div class="stat-card amber"><div class="stat-label">Pending</div><div class="stat-value" style="color:var(--amber)" id="ds-pending">—</div><div class="stat-sub" id="ds-pending-count" style="color:var(--amber)"></div></div>
+    <div class="stat-card red"><div class="stat-label">Overdue</div><div class="stat-value" style="color:var(--red)" id="ds-overdue">—</div><div class="stat-sub" id="ds-overdue-count" style="color:var(--red)"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Collection Progress</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:13px;color:var(--text2)" id="ds-progress-label">Loading...</span>
+      <span style="font-size:13px;font-weight:600;color:var(--green)" id="ds-rate">—</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill green" id="ds-progress-bar" style="width:0%"></div></div>
+    <div style="display:flex;gap:16px;margin-top:14px" id="ds-chips"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Recent Payments</div>
+    <div id="dash-recent"></div>
+  </div>
+</div>
+
+<!-- ── FLAT OWNERS ────────────────────────────────────────────────────── -->
+<div class="page" id="page-flats">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Flat Owners</div>
+      <div class="page-sub">All flats · Nandita Appartment</div>
+    </div>
+    <button class="btn btn-primary" onclick="openFlatModal()">+ Add Owner</button>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchFlatView('grid',this)">🏠 Grid View</div>
+    <div class="tab" onclick="switchFlatView('table',this)">📋 Table View</div>
+  </div>
+  <div id="flat-grid-view"><div class="flat-grid" id="flat-grid"></div></div>
+  <div id="flat-table-view" style="display:none">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Flat No.</th><th>Owner Name</th><th>Floor</th><th>Contact</th><th>Email</th><th>Type</th><th>Actions</th></tr></thead>
+        <tbody id="flat-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAINTENANCE ────────────────────────────────────────────────────── -->
+<div class="page" id="page-maintenance">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Maintenance Charges</div>
+      <div class="page-sub">Track monthly dues per flat</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <select id="maint-month-filter" onchange="loadMaintenance()" style="width:auto;padding:8px 12px;font-size:13px"></select>
+      <button class="btn btn-primary" onclick="openBulkModal()">⚡ Bulk Create Month</button>
+    </div>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)" id="maint-stats"></div>
+  <div class="card">
+    <div class="card-title">All Flats — Maintenance Status</div>
+    <div id="maintenance-list"></div>
+  </div>
+</div>
+
+<!-- ── PAYMENTS ───────────────────────────────────────────────────────── -->
+<div class="page" id="page-payments">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Collect Payment</div>
+      <div class="page-sub">Online via Razorpay or record cash</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:24px">
+    <div class="card">
+      <div class="card-title">Select Flat</div>
+      <div style="display:flex;flex-direction:column;gap:10px" id="payment-flat-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Payment Details</div>
+      <div id="payment-form-content">
+        <div class="empty-state"><div class="empty-icon">💳</div><p>Select a flat to continue</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PAYMENT HISTORY ────────────────────────────────────────────────── -->
+<div class="page" id="page-history">
+  <div class="page-header">
+    <div><div class="page-title">Payment History</div><div class="page-sub">All transactions</div></div>
+    <div style="display:flex;gap:8px">
+      <select id="hist-month" onchange="loadHistory()" style="width:auto;padding:8px 12px;font-size:13px">
+        <option value="">All Months</option>
+      </select>
+      <select id="hist-flat" onchange="loadHistory()" style="width:auto;padding:8px 12px;font-size:13px">
+        <option value="">All Flats</option>
+      </select>
+    </div>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)" id="hist-stats"></div>
+  <div class="card">
+    <div class="card-title">Transactions</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Flat</th><th>Owner</th><th>Amount</th><th>Month</th><th>Method</th><th>Razorpay ID</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── NOTICES ────────────────────────────────────────────────────────── -->
+<div class="page" id="page-notices">
+  <div class="page-header">
+    <div><div class="page-title">Notice Board</div><div class="page-sub">Society announcements</div></div>
+    <button class="btn btn-primary" onclick="openNoticeModal()">+ Post Notice</button>
+  </div>
+  <div id="notices-list"></div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  MODALS                                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- Flat Owner Modal -->
+<div class="modal-backdrop" id="flat-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="flat-modal-title">Add Flat Owner</div>
+      <button class="modal-close" onclick="closeModal('flat-modal')">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-grid form-grid-2">
+        <div class="form-group"><label>Flat Number</label><input id="fm-flat" placeholder="e.g. 101"/></div>
+        <div class="form-group"><label>Floor</label>
+          <select id="fm-floor">
+            <option>Ground Floor</option><option>1st Floor</option><option>2nd Floor</option><option>3rd Floor</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Owner Full Name</label><input id="fm-name" placeholder="e.g. Ravi Kumar"/></div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group"><label>Contact Number</label><input id="fm-phone" placeholder="+91 98765 43210"/></div>
+        <div class="form-group"><label>Email Address</label><input id="fm-email" type="email" placeholder="email@example.com"/></div>
+      </div>
+      <div class="form-group"><label>Ownership Type</label>
+        <select id="fm-type">
+          <option value="owner_occupied">Owner Occupied</option>
+          <option value="tenant">Tenant</option>
+          <option value="owner_not_residing">Owner (Not Residing)</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-outline" onclick="closeModal('flat-modal')">Cancel</button>
+        <button class="btn btn-primary" id="flat-save-btn" onclick="saveFlat()">Save Owner</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notice Modal -->
+<div class="modal-backdrop" id="notice-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Post Notice</div>
+      <button class="modal-close" onclick="closeModal('notice-modal')">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Title</label><input id="nm-title" placeholder="e.g. Water Supply Shutdown"/></div>
+      <div class="form-group"><label>Category</label>
+        <select id="nm-cat">
+          <option value="general">General</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="payment_reminder">Payment Reminder</option>
+          <option value="emergency">Emergency</option>
+          <option value="event">Event</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Priority</label>
+        <select id="nm-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Message</label><textarea id="nm-body" placeholder="Notice details..."></textarea></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('notice-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="postNotice()">Post Notice</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Maintenance Modal -->
+<div class="modal-backdrop" id="bulk-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title">Bulk Create Maintenance Charges</div>
+      <button class="modal-close" onclick="closeModal('bulk-modal')">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Creates a charge record for every active flat in one click.</p>
+    <div class="form-grid">
+      <div class="form-group"><label>Month (YYYY-MM)</label><input id="bm-month" placeholder="e.g. 2025-06"/></div>
+      <div class="form-group"><label>Amount (₹)</label><input id="bm-amount" type="number" value="3000"/></div>
+      <div class="form-group"><label>Due Date</label><input id="bm-due" type="date"/></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('bulk-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="doBulkCreate()">Create for All Flats</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Flat Detail Modal -->
+<div class="modal-backdrop" id="flat-detail-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="fdm-title">Flat Details</div>
+      <button class="modal-close" onclick="closeModal('flat-detail-modal')">×</button>
+    </div>
+    <div id="fdm-content"></div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading-overlay">
+  <div style="text-align:center">
+    <div class="spinner" style="width:40px;height:40px;border-width:3px;margin:0 auto 12px"></div>
+    <div style="color:var(--text2);font-size:13px" id="loading-msg">Loading...</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="display:none" class="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+//  CONFIG & STATE
+// ══════════════════════════════════════════════════════════════════════════
+let API_BASE     = localStorage.getItem('api_base') || 'http://localhost:8000';
+let RZP_KEY      = localStorage.getItem('rzp_key')  || '';
+let AUTH_TOKEN   = localStorage.getItem('auth_token') || '';
+let currentUser  = null;
+let allFlats     = [];
+let selectedPayFlat = null;
+let editFlatId   = null;
+let editOwnerId  = null;
+let toastTimer   = null;
+const CURR_MONTH = new Date().toISOString().slice(0,7); // "2025-05"
+
+// Pre-fill config banner
+document.getElementById('api-base-input').value = API_BASE;
+document.getElementById('rzp-key-input').value  = RZP_KEY;
+
+function saveConfig() {
+  API_BASE = document.getElementById('api-base-input').value.trim().replace(/\/$/, '');
+  RZP_KEY  = document.getElementById('rzp-key-input').value.trim();
+  localStorage.setItem('api_base', API_BASE);
+  localStorage.setItem('rzp_key',  RZP_KEY);
+  showToast('✅ Config saved', 'green');
+  testConnection();
+}
+
+async function testConnection() {
+  const el = document.getElementById('conn-status');
+  el.textContent = '⏳ Connecting...';
+  try {
+    const r = await fetch(API_BASE + '/');
+    el.textContent = r.ok ? '✅ Connected' : '❌ Server error';
+    el.style.color = r.ok ? 'var(--green)' : 'var(--red)';
+  } catch {
+    el.textContent = '❌ Cannot reach server';
+    el.style.color = 'var(--red)';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  API HELPERS
+// ══════════════════════════════════════════════════════════════════════════
+async function api(method, path, body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(AUTH_TOKEN ? { 'Authorization': `Bearer ${AUTH_TOKEN}` } : {})
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API_BASE + path, opts);
+  if (res.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════════════════════════
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  try {
+    const data = await api('POST', '/api/auth/login', { email, password });
+    AUTH_TOKEN = data.access_token;
+    localStorage.setItem('auth_token', AUTH_TOKEN);
+    const me = await api('GET', '/api/auth/me');
+    currentUser = me;
+    document.getElementById('avatar-initials').textContent =
+      me.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    openPage('dashboard');
+  } catch (e) {
+    errEl.textContent = '❌ ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign In →';
+  }
+}
+
+function doLogout() {
+  AUTH_TOKEN = '';
+  localStorage.removeItem('auth_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  showToast('Logged out', 'blue');
+}
+
+// Auto-login if token exists
+if (AUTH_TOKEN) {
+  api('GET', '/api/auth/me').then(me => {
+    currentUser = me;
+    document.getElementById('avatar-initials').textContent =
+      me.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    openPage('dashboard');
+  }).catch(() => { AUTH_TOKEN = ''; localStorage.removeItem('auth_token'); });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════════════════════
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => openPage(item.dataset.page));
+});
+
+function openPage(page) {
+  document.querySelectorAll('.nav-item').forEach(i =>
+    i.classList.toggle('active', i.dataset.page === page));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const loaders = {
+    dashboard:   loadDashboard,
+    flats:       loadFlats,
+    maintenance: loadMaintenance,
+    payments:    loadPaymentPage,
+    history:     loadHistory,
+    notices:     loadNotices,
+  };
+  if (loaders[page]) loaders[page]();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════════════════════════════
+async function loadDashboard() {
+  try {
+    const [summary, payments] = await Promise.all([
+      api('GET', `/api/maintenance/summary/${CURR_MONTH}`),
+      api('GET', `/api/payments/?limit=5`)
+    ]);
+
+    const month = new Date().toLocaleString('en-IN', {month:'long', year:'numeric'});
+    document.getElementById('dash-subtitle').textContent = `Sunrise Heights Society — ${month}`;
+    document.getElementById('ds-total').textContent   = summary.total_flats;
+    document.getElementById('ds-paid').textContent    = `₹${Number(summary.total_collected).toLocaleString('en-IN')}`;
+    document.getElementById('ds-paid-count').textContent = `${summary.paid_count} of ${summary.total_flats} flats ✓`;
+    document.getElementById('ds-pending').textContent    = `₹${Number(summary.total_outstanding).toLocaleString('en-IN')}`;
+    document.getElementById('ds-pending-count').textContent = `${summary.pending_count} flats due`;
+    document.getElementById('ds-overdue').textContent    = `${summary.overdue_count} flats`;
+    document.getElementById('ds-overdue-count').textContent = 'need attention';
+    document.getElementById('ds-rate').textContent    = `${summary.collection_rate_percent}%`;
+    document.getElementById('ds-progress-bar').style.width = summary.collection_rate_percent + '%';
+    document.getElementById('ds-progress-label').textContent =
+      `₹${Number(summary.total_collected).toLocaleString('en-IN')} collected of ₹${(summary.total_flats*3000).toLocaleString('en-IN')}`;
+    document.getElementById('ds-chips').innerHTML =
+      `<span class="chip">✅ Paid: ${summary.paid_count}</span>
+       <span class="chip">⏳ Pending: ${summary.pending_count}</span>
+       <span class="chip">🔴 Overdue: ${summary.overdue_count}</span>`;
+
+    const mIcons = {upi:'📱',card:'💳',net_banking:'🏦',wallet:'👜',cash:'💵'};
+    document.getElementById('dash-recent').innerHTML = payments.length ? payments.map(p => `
+      <div class="history-item">
+        <div class="h-icon" style="background:var(--green-bg)">${mIcons[p.payment_method]||'💰'}</div>
+        <div style="flex:1">
+          <div style="font-size:13.5px;font-weight:500">Flat ${p.flat?.flat_number||''} · ${p.flat?.owner?.full_name||'—'}</div>
+          <div style="font-size:12px;color:var(--text2)">${p.payment_method||'—'} · ${p.razorpay_payment_id||'cash'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:600;color:var(--green)">+₹${Number(p.amount).toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:var(--text3)">${p.paid_at ? new Date(p.paid_at).toLocaleDateString('en-IN') : '—'}</div>
+        </div>
+      </div>`).join('') :
+      '<div class="empty-state"><p>No payments yet this month</p></div>';
+  } catch(e) { showToast('❌ Dashboard error: ' + e.message, 'red'); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  FLATS & OWNERS
+// ══════════════════════════════════════════════════════════════════════════
+async function loadFlats() {
+  showLoading('Loading flats...');
+  try {
+    allFlats = await api('GET', '/api/flats/');
+    renderFlatGrid();
+    renderFlatTable();
+    populateFlatFilters();
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+  finally { hideLoading(); }
+}
+
+function renderFlatGrid() {
+  document.getElementById('flat-grid').innerHTML = allFlats.map(f => `
+    <div class="flat-card" onclick="showFlatDetail(${f.id})">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px">Flat ${f.flat_number}</div>
+      </div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:4px">${f.owner?.full_name || '⚠️ No owner set'}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">${f.floor}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openFlatModal(${f.id})">✏️ Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openPage('payments');setTimeout(()=>selectPayFlat(${f.id}),200)">💳 Pay</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderFlatTable() {
+  document.getElementById('flat-table-body').innerHTML = allFlats.map(f => `
+    <tr onclick="showFlatDetail(${f.id})">
+      <td><strong>Flat ${f.flat_number}</strong></td>
+      <td>${f.owner?.full_name||'—'}</td>
+      <td class="cell-muted">${f.floor}</td>
+      <td class="cell-muted" style="font-family:'DM Mono',monospace;font-size:12px">${f.owner?.phone||'—'}</td>
+      <td class="cell-muted">${f.owner?.email||'—'}</td>
+      <td><span class="badge badge-blue">${(f.owner?.ownership_type||'').replace(/_/g,' ')}</span></td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openFlatModal(${f.id})">Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openPage('payments');setTimeout(()=>selectPayFlat(${f.id}),200)">Pay</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function switchFlatView(view, el) {
+  document.querySelectorAll('#page-flats .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('flat-grid-view').style.display  = view==='grid'  ? 'block' : 'none';
+  document.getElementById('flat-table-view').style.display = view==='table' ? 'block' : 'none';
+}
+
+async function showFlatDetail(id) {
+  const f = allFlats.find(x=>x.id===id);
+  if (!f) return;
+  document.getElementById('fdm-title').textContent = `Flat ${f.flat_number} — ${f.owner?.full_name||'No Owner'}`;
+  let payHtml = '<div style="color:var(--text3);font-size:13px">No payments recorded</div>';
+  try {
+    const pays = await api('GET', `/api/payments/?flat_id=${id}&limit=3`);
+    if (pays.length) payHtml = pays.map(p=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div><div style="font-size:13px;font-weight:500">${p.month_year}</div><div style="font-size:11px;color:var(--text3)">${p.payment_method||'cash'} · ${p.razorpay_payment_id||'offline'}</div></div>
+        <div style="color:var(--green);font-weight:600">₹${Number(p.amount).toLocaleString('en-IN')}</div>
+      </div>`).join('');
+  } catch {}
+
+  document.getElementById('fdm-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:var(--bg3);border-radius:8px;padding:14px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;font-weight:600">Floor</div><div style="font-weight:500">${f.floor}</div></div>
+      <div style="background:var(--bg3);border-radius:8px;padding:14px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;font-weight:600">Type</div><div style="font-weight:500">${(f.owner?.ownership_type||'—').replace(/_/g,' ')}</div></div>
+    </div>
+    ${f.owner ? `
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📞</span><div><div style="font-size:11px;color:var(--text3)">Phone</div><div style="font-weight:500;font-family:'DM Mono',monospace;font-size:13px">${f.owner.phone||'—'}</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">📧</span><div><div style="font-size:11px;color:var(--text3)">Email</div><div style="font-weight:500;font-size:13px">${f.owner.email||'—'}</div></div></div>
+    </div>` : ''}
+    <div style="border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Recent Payments</div>
+      ${payHtml}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="closeModal('flat-detail-modal');openPage('payments');setTimeout(()=>selectPayFlat(${f.id}),200)">💳 Collect Payment</button>
+      <button class="btn btn-outline" onclick="closeModal('flat-detail-modal');openFlatModal(${f.id})">✏️ Edit</button>
+    </div>`;
+  openModal('flat-detail-modal');
+}
+
+function openFlatModal(flatId) {
+  editFlatId = flatId || null;
+  editOwnerId = null;
+  document.getElementById('flat-modal-title').textContent = flatId ? 'Edit Flat / Owner' : 'Add Flat & Owner';
+  if (flatId) {
+    const f = allFlats.find(x=>x.id===flatId);
+    document.getElementById('fm-flat').value  = f.flat_number;
+    document.getElementById('fm-floor').value = f.floor;
+    document.getElementById('fm-name').value  = f.owner?.full_name||'';
+    document.getElementById('fm-phone').value = f.owner?.phone||'';
+    document.getElementById('fm-email').value = f.owner?.email||'';
+    document.getElementById('fm-type').value  = f.owner?.ownership_type||'owner_occupied';
+    editOwnerId = f.owner?.id||null;
+  } else {
+    ['fm-flat','fm-name','fm-phone','fm-email'].forEach(x=>document.getElementById(x).value='');
+  }
+  openModal('flat-modal');
+}
+
+async function saveFlat() {
+  const btn = document.getElementById('flat-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const flatNum = document.getElementById('fm-flat').value.trim();
+    const name    = document.getElementById('fm-name').value.trim();
+    if (!flatNum || !name) { showToast('⚠️ Flat number and name are required', 'amber'); return; }
+
+    let flatId = editFlatId;
+
+    if (!editFlatId) {
+      // Create flat first
+      const flat = await api('POST', '/api/flats/', {
+        flat_number: flatNum,
+        floor: document.getElementById('fm-floor').value,
+      });
+      flatId = flat.id;
+      // Then create owner
+      await api('POST', '/api/owners/', {
+        flat_id: flatId,
+        full_name: name,
+        phone: document.getElementById('fm-phone').value,
+        email: document.getElementById('fm-email').value,
+        ownership_type: document.getElementById('fm-type').value,
+      });
+      showToast('✅ Flat & owner added', 'green');
+    } else {
+      // Update flat
+      await api('PUT', `/api/flats/${editFlatId}`, {
+        flat_number: flatNum,
+        floor: document.getElementById('fm-floor').value,
+      });
+      if (editOwnerId) {
+        await api('PUT', `/api/owners/${editOwnerId}`, {
+          full_name: name,
+          phone: document.getElementById('fm-phone').value,
+          email: document.getElementById('fm-email').value,
+          ownership_type: document.getElementById('fm-type').value,
+        });
+      } else {
+        await api('POST', '/api/owners/', {
+          flat_id: editFlatId,
+          full_name: name,
+          phone: document.getElementById('fm-phone').value,
+          email: document.getElementById('fm-email').value,
+          ownership_type: document.getElementById('fm-type').value,
+        });
+      }
+      showToast('✅ Updated successfully', 'green');
+    }
+    closeModal('flat-modal');
+    loadFlats();
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+  finally { btn.disabled = false; btn.textContent = 'Save Owner'; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  MAINTENANCE
+// ══════════════════════════════════════════════════════════════════════════
+function populateMonthFilter() {
+  const sel = document.getElementById('maint-month-filter');
+  const months = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    months.push(d.toISOString().slice(0,7));
+  }
+  sel.innerHTML = months.map(m => `<option value="${m}" ${m===CURR_MONTH?'selected':''}>${m}</option>`).join('');
+}
+
+async function loadMaintenance() {
+  const month = document.getElementById('maint-month-filter')?.value || CURR_MONTH;
+  showLoading('Loading maintenance...');
+  try {
+    const [charges, summary] = await Promise.all([
+      api('GET', `/api/maintenance/?month_year=${month}`),
+      api('GET', `/api/maintenance/summary/${month}`)
+    ]);
+
+    document.getElementById('maint-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-label">Standard Charge</div><div class="stat-value" style="color:var(--text)">₹${Number(summary.total_collected/Math.max(summary.paid_count,1)||3000).toLocaleString('en-IN')}</div><div class="stat-sub" style="color:var(--text3)">Per flat / month</div></div>
+      <div class="stat-card blue"><div class="stat-label">Total Collected</div><div class="stat-value" style="color:var(--accent)">₹${Number(summary.total_collected).toLocaleString('en-IN')}</div><div class="stat-sub" style="color:var(--text3)">${summary.paid_count} flats paid</div></div>
+      <div class="stat-card red"><div class="stat-label">Outstanding</div><div class="stat-value" style="color:var(--red)">₹${Number(summary.total_outstanding).toLocaleString('en-IN')}</div><div class="stat-sub" style="color:var(--red)">${summary.pending_count + summary.overdue_count} flats unpaid</div></div>`;
+
+    // Build a map for quick lookup
+    const chargeMap = {};
+    charges.forEach(c => chargeMap[c.flat_id] = c);
+
+    if (!allFlats.length) allFlats = await api('GET', '/api/flats/');
+
+    document.getElementById('maintenance-list').innerHTML = allFlats.map(f => {
+      const c = chargeMap[f.id];
+      const status = c?.status || 'not_set';
+      const bar    = status==='paid'?'green':status==='overdue'?'red':'amber';
+      const pct    = status==='paid'?100:status==='overdue'?0:30;
+      const amount = c ? `₹${Number(c.amount).toLocaleString('en-IN')}` : '—';
+      return `
+      <div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:72px"><div style="font-size:14px;font-weight:600">Flat ${f.flat_number}</div><div style="font-size:11px;color:var(--text3)">${f.floor}</div></div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;margin-bottom:6px">${f.owner?.full_name||'No owner'}</div>
+          <div class="progress-bar"><div class="progress-fill ${bar}" style="width:${pct}%"></div></div>
+        </div>
+        <div style="text-align:right;min-width:80px">
+          <div style="font-size:14px;font-weight:600">${amount}</div>
+          <div style="margin-top:4px">${statusBadge(status)}</div>
+        </div>
+        <div>
+          ${!c ? `<button class="btn btn-outline btn-sm" onclick="createSingleCharge(${f.id},'${month}')">+ Create</button>` :
+            status!=='paid' ? `<button class="btn btn-primary btn-sm" onclick="openPage('payments');setTimeout(()=>selectPayFlat(${f.id}),200)">Collect</button>` :
+            '<span style="color:var(--green);font-size:13px">✓ Done</span>'}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+  finally { hideLoading(); }
+}
+
+async function createSingleCharge(flatId, month) {
+  try {
+    await api('POST', '/api/maintenance/', { flat_id: flatId, month_year: month, amount: 3000 });
+    showToast('✅ Charge created', 'green');
+    loadMaintenance();
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+function openBulkModal() {
+  const d = new Date(); d.setMonth(d.getMonth()+1);
+  document.getElementById('bm-month').value  = d.toISOString().slice(0,7);
+  document.getElementById('bm-amount').value = 3000;
+  openModal('bulk-modal');
+}
+
+async function doBulkCreate() {
+  try {
+    const res = await api('POST', '/api/maintenance/bulk', {
+      month_year: document.getElementById('bm-month').value,
+      amount: parseFloat(document.getElementById('bm-amount').value),
+      due_date: document.getElementById('bm-due').value || null,
+    });
+    showToast(`✅ Created for ${res.created_for_flats.length} flats`, 'green');
+    closeModal('bulk-modal');
+    loadMaintenance();
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  PAYMENTS (Razorpay)
+// ══════════════════════════════════════════════════════════════════════════
+async function loadPaymentPage() {
+  if (!allFlats.length) allFlats = await api('GET', '/api/flats/');
+  const list = document.getElementById('payment-flat-list');
+  list.innerHTML = allFlats.map(f => `
+    <div onclick="selectPayFlat(${f.id})" id="pfl-${f.id}"
+      style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color 0.15s">
+      <div>
+        <div style="font-size:13px;font-weight:600">Flat ${f.flat_number}</div>
+        <div style="font-size:12px;color:var(--text2)">${f.owner?.full_name||'No owner'}</div>
+      </div>
+    </div>`).join('');
+}
+
+function selectPayFlat(id) {
+  selectedPayFlat = allFlats.find(f=>f.id===id);
+  document.querySelectorAll('#payment-flat-list > div').forEach(d=>d.style.borderColor='var(--border)');
+  const el = document.getElementById('pfl-'+id);
+  if (el) el.style.borderColor = 'var(--accent)';
+
+  document.getElementById('payment-form-content').innerHTML = `
+    <div style="margin-bottom:16px">
+      <div style="font-size:13px;color:var(--text2)">Flat ${selectedPayFlat.flat_number} · ${selectedPayFlat.owner?.full_name||'—'}</div>
+      <div style="font-size:24px;font-weight:700;margin-top:4px">₹3,000</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">Maintenance Charge</div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Month</label>
+      <input id="pay-month" value="${CURR_MONTH}" placeholder="YYYY-MM"/>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Amount (₹)</label>
+      <input id="pay-amount" type="number" value="3000"/>
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label>Note (optional)</label>
+      <input id="pay-note" placeholder="e.g. Advance payment"/>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" id="rzp-pay-btn" style="justify-content:center;padding:12px" onclick="initiateRazorpay()">
+        💳 Pay via Razorpay (UPI/Card/NetBanking)
+      </button>
+      <button class="btn btn-outline" style="justify-content:center;padding:12px" onclick="recordCash()">
+        💵 Record Cash Payment
+      </button>
+    </div>
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3)">🔒 Online payments secured by Razorpay · 256-bit SSL</div>`;
+}
+
+async function initiateRazorpay() {
+  if (!selectedPayFlat) { showToast('⚠️ Select a flat first', 'amber'); return; }
+  const key = RZP_KEY || localStorage.getItem('rzp_key');
+  if (!key) { showToast('⚠️ Enter your Razorpay Key ID in the config bar above', 'amber'); return; }
+
+  const btn = document.getElementById('rzp-pay-btn');
+  btn.disabled = true; btn.textContent = 'Creating order...';
+  try {
+    const order = await api('POST', '/api/payments/create-order', {
+      flat_id:    selectedPayFlat.id,
+      month_year: document.getElementById('pay-month').value,
+      amount:     parseFloat(document.getElementById('pay-amount').value),
+      notes:      document.getElementById('pay-note').value,
+    });
+
+    const options = {
+      key:         key,
+      amount:      order.amount,          // paise
+      currency:    order.currency,
+      name:        'SocietyPay',
+      description: `Maintenance — Flat ${selectedPayFlat.flat_number} · ${document.getElementById('pay-month').value}`,
+      order_id:    order.razorpay_order_id,
+      prefill: {
+        name:  selectedPayFlat.owner?.full_name || '',
+        email: selectedPayFlat.owner?.email     || '',
+        contact: selectedPayFlat.owner?.phone   || '',
+      },
+      notes: { flat_number: selectedPayFlat.flat_number },
+      theme: { color: '#4f8ef7' },
+      handler: async function(response) {
+        // Payment successful — verify on backend
+        try {
+          await api('POST', '/api/payments/verify', {
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature:  response.razorpay_signature,
+          });
+          showToast('✅ Payment verified & recorded!', 'green');
+          loadPaymentPage();
+          loadDashboard();
+        } catch(e) {
+          showToast('⚠️ Payment done but verification failed: ' + e.message, 'amber');
+        }
+      },
+      modal: {
+        ondismiss: function() {
+          showToast('Payment cancelled', 'amber');
+          btn.disabled = false; btn.textContent = '💳 Pay via Razorpay';
+        }
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+  } catch(e) {
+    showToast('❌ ' + e.message, 'red');
+    btn.disabled = false; btn.textContent = '💳 Pay via Razorpay';
+  }
+}
+
+async function recordCash() {
+  if (!selectedPayFlat) { showToast('⚠️ Select a flat first', 'amber'); return; }
+  try {
+    await api('POST', '/api/payments/record-cash', {
+      flat_id:    selectedPayFlat.id,
+      month_year: document.getElementById('pay-month').value,
+      amount:     parseFloat(document.getElementById('pay-amount').value),
+      notes:      document.getElementById('pay-note').value,
+    });
+    showToast('✅ Cash payment recorded', 'green');
+    loadPaymentPage();
+    loadDashboard();
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  PAYMENT HISTORY
+// ══════════════════════════════════════════════════════════════════════════
+function populateFlatFilters() {
+  const sel = document.getElementById('hist-flat');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All Flats</option>' +
+    allFlats.map(f=>`<option value="${f.id}">Flat ${f.flat_number}</option>`).join('');
+}
+
+async function loadHistory() {
+  const flatId = document.getElementById('hist-flat')?.value;
+  const month  = document.getElementById('hist-month')?.value;
+  let url = '/api/payments/?limit=200';
+  if (flatId) url += `&flat_id=${flatId}`;
+  if (month)  url += `&month_year=${month}`;
+  showLoading('Loading history...');
+  try {
+    const pays = await api('GET', url);
+    const total = pays.filter(p=>p.status==='success').reduce((s,p)=>s+Number(p.amount),0);
+    const monthPays = pays.filter(p=>p.month_year===CURR_MONTH && p.status==='success');
+    const monthTotal = monthPays.reduce((s,p)=>s+Number(p.amount),0);
+    document.getElementById('hist-stats').innerHTML = `
+      <div class="stat-card green"><div class="stat-label">Total Collected</div><div class="stat-value" style="color:var(--green)">₹${total.toLocaleString('en-IN')}</div><div class="stat-sub" style="color:var(--text3)">${pays.length} transactions</div></div>
+      <div class="stat-card blue"><div class="stat-label">This Month</div><div class="stat-value" style="color:var(--accent)">₹${monthTotal.toLocaleString('en-IN')}</div><div class="stat-sub" style="color:var(--text3)">${monthPays.length} transactions</div></div>
+      <div class="stat-card amber"><div class="stat-label">Avg per Flat</div><div class="stat-value" style="color:var(--amber)">₹${pays.length ? Math.round(total/pays.length).toLocaleString('en-IN') : 0}</div><div class="stat-sub" style="color:var(--text3)">per transaction</div></div>`;
+    const mIcons = {upi:'📱',card:'💳',net_banking:'🏦',wallet:'👜',cash:'💵'};
+    document.getElementById('history-tbody').innerHTML = pays.length ? pays.map(p=>`
+      <tr>
+        <td><strong>Flat ${p.flat?.flat_number||'—'}</strong></td>
+        <td>${p.flat?.owner?.full_name||'—'}</td>
+        <td style="font-weight:600;color:var(--green)">₹${Number(p.amount).toLocaleString('en-IN')}</td>
+        <td class="cell-muted">${p.month_year}</td>
+        <td>${mIcons[p.payment_method]||'💰'} ${p.payment_method||'—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">${p.razorpay_payment_id||'cash'}</td>
+        <td class="cell-muted">${p.paid_at ? new Date(p.paid_at).toLocaleDateString('en-IN') : '—'}</td>
+        <td><span class="badge ${p.status==='success'?'badge-green':'badge-amber'}">${p.status}</span></td>
+      </tr>`).join('') :
+      '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">No transactions found</td></tr>';
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+  finally { hideLoading(); }
+}
+
+// Month filter options
+function populateHistoryMonths() {
+  const sel = document.getElementById('hist-month');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All Months</option>';
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    const val = d.toISOString().slice(0,7);
+    sel.innerHTML += `<option value="${val}" ${i===0?'selected':''}>${val}</option>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  NOTICES
+// ══════════════════════════════════════════════════════════════════════════
+async function loadNotices() {
+  showLoading('Loading notices...');
+  try {
+    const notices = await api('GET', '/api/notices/');
+    const catColors = {general:'badge-blue',maintenance:'badge-amber',payment_reminder:'badge-red',emergency:'badge-red',event:'badge-purple'};
+    const priIcons  = {high:'🔴',medium:'🟡',low:'🟢'};
+    document.getElementById('notices-list').innerHTML = notices.length ? notices.map(n=>`
+      <div class="notice-item">
+        <div class="notice-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span>${priIcons[n.priority]||'🔵'}</span>
+            <span class="notice-title-text">${n.title}</span>
+            <span class="badge ${catColors[n.category]||'badge-blue'}">${n.category.replace(/_/g,' ')}</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="deleteNotice(${n.id})">🗑️</button>
+        </div>
+        <div class="notice-body">${n.body}</div>
+        <div class="notice-meta">Posted: ${new Date(n.created_at).toLocaleDateString('en-IN')}</div>
+      </div>`).join('') :
+      '<div class="empty-state"><div class="empty-icon">📢</div><p>No notices posted yet</p></div>';
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+  finally { hideLoading(); }
+}
+
+function openNoticeModal() { openModal('notice-modal'); }
+
+async function postNotice() {
+  const title = document.getElementById('nm-title').value.trim();
+  const body  = document.getElementById('nm-body').value.trim();
+  if (!title||!body) { showToast('⚠️ Fill in title and message', 'amber'); return; }
+  try {
+    await api('POST', '/api/notices/', {
+      title, body,
+      category: document.getElementById('nm-cat').value,
+      priority: document.getElementById('nm-priority').value,
+    });
+    closeModal('notice-modal');
+    document.getElementById('nm-title').value = '';
+    document.getElementById('nm-body').value  = '';
+    showToast('📢 Notice posted', 'green');
+    loadNotices();
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+async function deleteNotice(id) {
+  if (!confirm('Delete this notice?')) return;
+  try {
+    await api('DELETE', `/api/notices/${id}`);
+    showToast('🗑️ Notice deleted', 'amber');
+    loadNotices();
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════════════════════════
+function statusBadge(s) {
+  const map = {paid:['badge-green','✓ Paid'],pending:['badge-amber','⏳ Pending'],overdue:['badge-red','🔴 Overdue'],not_set:['badge-blue','— Not Set']};
+  const [cls,lbl] = map[s]||['badge-blue',s];
+  return `<span class="badge ${cls}">${lbl}</span>`;
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-backdrop').forEach(m =>
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+function showLoading(msg='Loading...') {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+
+function showToast(msg, type='green') {
+  const t = document.getElementById('toast');
+  const colors = {green:'var(--green)',amber:'var(--amber)',blue:'var(--accent)',red:'var(--red)'};
+  t.textContent = msg;
+  t.style.display = 'flex';
+  t.style.borderColor = colors[type]||'var(--border2)';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.style.display='none', 3500);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════════════════
+populateMonthFilter();
+populateHistoryMonths();
+testConnection();
+</script>
+</body>
+</html>
